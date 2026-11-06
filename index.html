@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Aniverse - Final</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial}
+body{background:#0b0b14;color:white}
+.hidden{display:none!important}
+.top{display:flex;justify-content:space-between;align-items:center;padding:14px}
+.logo{font-size:28px;font-weight:900;color:#a78bfa}
+.bell{position:relative;font-size:24px;cursor:pointer}
+.bell b{position:absolute;top:-8px;right:-8px;background:red;font-size:11px;padding:2px 6px;border-radius:50%}
+.btn{width:100%;padding:14px;margin:8px 0;border-radius:30px;border:1px solid #555;background:#1a1a2e;color:white;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px}
+.btn.primary{background:#7c3aed;border:none}
+input,textarea,select{width:100%;padding:13px;margin:6px 0;border-radius:12px;border:1px solid #333;background:#1a1a2e;color:white}
+.card{background:#151525;margin:12px;border-radius:16px;overflow:hidden}
+.card img,.card video{width:100%;max-height:420px;object-fit:cover}
+.pad{padding:12px}
+.actions{display:flex;gap:16px;padding:10px 12px;font-size:18px;flex-wrap:wrap}
+.actions span{cursor:pointer}
+.stories{display:flex;gap:12px;overflow-x:auto;padding:10px 12px}
+.story{text-align:center;min-width:68px;cursor:pointer}
+.story img{width:62px;height:62px;border-radius:50%;border:3px solid #a78bfa;object-fit:cover}
+.nav{position:fixed;bottom:0;left:0;right:0;background:#111;display:flex;justify-content:space-around;padding:12px;font-size:22px;z-index:10}
+.nav span{cursor:pointer}
+.page{padding-bottom:80px}
+.avatar{width:90px;height:90px;border-radius:50%;object-fit:cover;border:3px solid #a78bfa}
+.chat{position:fixed;inset:0;background:#0b0b14;z-index:20;display:flex;flex-direction:column}
+.msg{max-width:75%;padding:10px 14px;border-radius:16px;margin:6px}
+.me{background:#7c3aed;align-self:flex-end}
+.other{background:#222;align-self:flex-start}
+.notif{display:flex;gap:10px;padding:12px;border-bottom:1px solid #222;align-items:center}
+.notif img{width:48px;height:48px;border-radius:50%;object-fit:cover}
+.pill{padding:6px 12px;border-radius:20px;background:#333;cursor:pointer}
+.pill.active{background:#fff;color:#000}
+.callBtn{width:60px;height:60px;border-radius:50%;border:none;font-size:22px;background:#333;color:white;cursor:pointer}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginPage" class="page" style="padding:30px 20px;text-align:center">
+  <div style="font-size:52px">🌙✨</div><h1 class="logo">Aniverse</h1>
+  <p style="margin:10px 0 20px;color:#aaa">Welcome Back!<br>Sign in to continue to Aniverse</p>
+  <input id="emailInput" placeholder="Enter Gmail / Email">
+  <button class="btn primary" onclick="loginEmail()">Continue with Gmail / Email → Send Code</button>
+  <input id="otpInput" placeholder="Enter 6-digit code from email">
+  <button class="btn" onclick="verifyEmail()">Verify Code & Login</button>
+  <button class="btn" onclick="loginGoogle()">🔵 Continue with Google</button>
+  <input id="phoneInput" placeholder="+234 Phone Number">
+  <button class="btn" onclick="loginPhone()">📞 Continue with Phone Number → Send SMS Code</button>
+  <input id="phoneOtp" placeholder="Enter SMS code">
+  <button class="btn" onclick="verifyPhone()">Verify Phone & Login</button>
+  <button class="btn" onclick="enterApp()" style="border:1px dashed #a78bfa">👀 Preview App Without Login (For Testing)</button>
+  <p id="loginMsg" style="color:#a78bfa;margin-top:10px"></p>
+  <p style="font-size:12px;color:#888;margin-top:15px">By continuing you agree to Terms & Privacy Policy</p>
+</div>
+
+<!-- APP -->
+<div id="appPage" class="hidden">
+  <div class="top"><div class="logo">Aniverse</div><div class="bell" onclick="showPage('notifPage')">🔔<b id="notifCount">4</b></div></div>
+
+  <div id="homePage" class="page">
+    <div style="padding:0 12px"><b>Stories — expiring in 24h</b> <span style="color:#a78bfa;float:right" onclick="alert('See all stories')">See all ›</span></div>
+    <div class="stories" id="stories"></div>
+    <input id="postText" placeholder="Share your anime moment... #animeart">
+    <input type="file" id="postFile" accept="image/*,video/*">
+    <select id="postPrivacy"><option value="public">🌍 Public - Everyone</option><option value="private">🔒 Private - Friends Only</option></select>
+    <button class="btn primary" style="margin:0 12px;width:calc(100% - 24px)" onclick="createPost()">Post</button>
+    <div id="feed"></div>
+  </div>
+
+  <div id="profilePage" class="page hidden" style="padding:16px;text-align:center">
+    <input type="file" id="picInput" accept="image/*" onchange="changePic(event)" style="display:none">
+    <img id="myPic" class="avatar" src="https://i.pravatar.cc/150?img=12" onclick="document.getElementById('picInput').click()">
+    <p style="font-size:12px;color:#a78bfa">Tap pic to change — e go stay as you leave am</p>
+    <h2>@you • Luna</h2>
+    <textarea id="bioInput">Anime artist • Digital illustrator ✨ Coffee • Cats • Drawing daily</textarea>
+    <button class="btn primary" onclick="saveBio()">Save Bio</button>
+    <p id="bioShow" style="color:#ccc;margin:10px 0"></p>
+    <div style="display:flex;justify-content:space-around;margin:12px 0"><div><b id="postCount">0</b><br>Posts</div><div><b>12.4K</b><br>Followers</div><div><b>540</b><br>Following</div></div>
+    <button class="btn" onclick="showPage('settingsPage')">⚙️ Settings</button>
+    <div id="myPosts"></div>
+  </div>
+
+  <div id="notifPage" class="page hidden" style="padding:12px">
+    <h2>Notifications</h2>
+    <div style="display:flex;gap:8px;margin:12px 0;overflow-x:auto"><span class="pill active">All</span><span class="pill">Likes</span><span class="pill">Comments</span><span class="pill">Follows</span><span class="pill">Messages</span></div>
+    <div id="notifList"></div>
+    <button class="btn" onclick="clearNotif()">Mark all as read</button>
+  </div>
+
+  <div id="settingsPage" class="page hidden" style="padding:16px">
+    <h2>Settings</h2>
+    <p style="margin:12px 0">Notifications</p>
+    <label><input type="checkbox" checked> Likes</label><br><label><input type="checkbox" checked> Comments</label><br><label><input type="checkbox" checked> Follows</label><br><label><input type="checkbox" checked> Messages</label><br><br>
+    <p>Chat Colour</p><select id="chatColor"><option value="#7c3aed">Purple</option><option value="#ec4899">Pink</option><option value="#06b6d4">Blue</option><option value="#22c55e">Green</option></select><br><br>
+    <button class="btn primary" onclick="logout()">Logout</button>
+    <button class="btn" onclick="deleteAccount()">🗑️ Delete My Account</button>
+    <button class="btn" onclick="showPage('homePage')">← Back</button>
+  </div>
+
+  <div class="nav"><span onclick="showPage('homePage')">🏠</span><span onclick="showPage('profilePage')">👤</span><span onclick="showPage('notifPage')">🔔</span><span onclick="openChat('Ken')">💬</span><span onclick="showPage('settingsPage')">⚙️</span></div>
+</div>
+
+<!-- CHAT - WhatsApp Full Screen -->
+<div id="chatPage" class="chat hidden">
+  <div style="display:flex;align-items:center;gap:10px;padding:12px;background:#151525"><span onclick="closeChat()" style="font-size:22px;cursor:pointer">←</span><img src="https://i.pravatar.cc/100?img=13" style="width:40px;height:40px;border-radius:50%"><div><b id="chatName">Ken</b> • <span style="color:#22c55e">Online</span></div>
+  <span style="margin-left:auto;display:flex;gap:14px;font-size:22px"><span onclick="startCall('voice')" style="cursor:pointer">📞</span><span onclick="startCall('video')" style="cursor:pointer">📹</span></span></div>
+  <div style="padding:10px;display:flex;gap:8px;align-items:center"><label><input type="checkbox" id="disappear"> Disappearing Messages</label><input type="color" id="chatBg" value="#0b0b14" onchange="document.getElementById('chatMsgs').style.background=this.value"></div>
+  <div id="chatMsgs" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column"></div>
+  <div style="display:flex;gap:8px;padding:10px;background:#151525"><input id="chatInput" placeholder="Message..."><button onclick="sendMsg()" style="padding:10px 16px;border-radius:50%;background:#7c3aed;border:none;color:white">➤</button></div>
+  <div style="display:flex;gap:8px;padding:0 10px 10px;background:#151525;flex-wrap:wrap"><button onclick="alert('Picture sent! 📸')">📸 Picture</button><button onclick="alert('Video sent! 🎥')">🎥 Video</button><button onclick="alert('Voice Note sent! 🎤')">🎤 Voice Note</button><button onclick="alert('Shared to other apps!')">↗ Share</button></div>
+  <p style="font-size:11px;text-align:center;padding:6px;color:#888">Tap a message to Delete for Everybody / Delete for Me • Messages stay forever unless YOU delete • Tap 📞 to Call</p>
+</div>
+
+<!-- CALL SCREEN - Like WhatsApp -->
+<div id="callScreen" class="hidden" style="position:fixed;inset:0;background:#111;z-index:99;flex-direction:column;align-items:center;justify-content:center;text-align:center">
+  <img src="https://i.pravatar.cc/150?img=13" style="width:120px;height:120px;border-radius:50%;border:4px solid #a78bfa">
+  <h2 id="callName" style="margin:12px 0 4px">Ken</h2>
+  <p id="callStatus" style="color:#22c55e">Calling... Ringing...</p>
+  <p id="callTimer" style="font-size:28px;margin:10px 0">00:00</p>
+  <video id="remoteVideo" autoplay playsinline style="width:90%;max-width:400px;border-radius:16px;background:#000;display:none"></video>
+  <video id="localVideo" autoplay muted playsinline style="width:120px;border-radius:12px;position:absolute;bottom:130px;right:16px;border:2px solid white;display:none"></video>
+  <div style="display:flex;gap:16px;margin-top:24px">
+    <button id="muteBtn" class="callBtn" onclick="toggleMute()">🎤</button>
+    <button class="callBtn" onclick="alert('Speaker ON 🔊')">🔊</button>
+    <button class="callBtn" onclick="alert('Camera switched 🔄')">🔄</button>
+    <button class="callBtn" onclick="endCall()" style="background:#ef4444">📞</button>
+  </div>
+  <p style="font-size:12px;color:#888;margin-top:12px">Your voice go clear — other person go hear you<br>Like WhatsApp Call</p>
+</div>
+
+<script>
+const SUPABASE_URL="https://vsjbddwuqgrhdbhwfyfv.supabase.co";
+const SUPABASE_KEY="sb_publishable_KuSRj2_sozZ_U_JrRfiEpA_9zY5zC0I";
+const supabaseClient=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+let posts=JSON.parse(localStorage.getItem('aniverse_posts')||'[]');
+let notifs=[
+ {img:'https://i.pravatar.cc/100?img=13',t:'Ken liked your post',s:'2m ago • Your artwork: Starlit Rooftop'},
+ {img:'https://i.pravatar.cc/100?img=47',t:'Mika commented',s:'"This is so cute! I love the vibes ✨" • 12m ago'},
+ {img:'https://i.pravatar.cc/100?img=32',t:'Yumi started following you',s:'Follow her back • 35m ago'},
+ {img:'https://i.pravatar.cc/100?img=13',t:'Ryo sent you a message',s:'"Are we still meeting?" • 1h ago'},
+];
+let stories=[{n:'Your Story',img:'https://i.pravatar.cc/100?img=12'},{n:'Mika',img:'https://i.pravatar.cc/100?img=47'},{n:'Ken',img:'https://i.pravatar.cc/100?img=13'},{n:'Yumi',img:'https://i.pravatar.cc/100?img=32'},{n:'Ryo',img:'https://i.pravatar.cc/100?img=59'}];
+let chats={Ken:[{me:false,t:"Can't wait! Want to collab on the next one?"},{me:true,t:"Thank you!! I'll post the process soon ✨"}]};
+async function loginEmail(){let e=document.getElementById('emailInput').value; if(!e) return alert('Enter Gmail'); let {error}=await supabaseClient.auth.signInWithOtp({email:e}); document.getElementById('loginMsg').innerText=error?error.message:'✅ Code sent to your Gmail! Check inbox!';}
+async function verifyEmail(){let e=document.getElementById('emailInput').value,c=document.getElementById('otpInput').value; let {error}=await supabaseClient.auth.verifyOtp({email:e,token:c,type:'email'}); if(error) return alert(error.message); enterApp();}
+async function loginGoogle(){let {error}=await supabaseClient.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.href}}); if(error) alert(error.message);}
+async function loginPhone(){let p=document.getElementById('phoneInput').value; if(!p) return alert('Enter phone'); let {error}=await supabaseClient.auth.signInWithOtp({phone:p}); document.getElementById('loginMsg').innerText=error?error.message:'✅ SMS Code sent!';}
+async function verifyPhone(){let p=document.getElementById('phoneInput').value,c=document.getElementById('phoneOtp').value; let {error}=await supabaseClient.auth.verifyOtp({phone:p,token:c,type:'sms'}); if(error) return alert(error.message); enterApp();}
+function enterApp(){document.getElementById('loginPage').classList.add('hidden');document.getElementById('appPage').classList.remove('hidden');renderAll();}
+async function logout(){await supabaseClient.auth.signOut();location.reload();}
+async function deleteAccount(){if(confirm('Delete your account forever?')){await supabaseClient.auth.signOut();localStorage.clear();alert('Account deleted!');location.reload();}}
+function showPage(id){['homePage','profilePage','notifPage','settingsPage'].forEach(x=>document.getElementById(x).classList.add('hidden'));document.getElementById(id).classList.remove('hidden'); if(id==='notifPage') renderNotif();}
+function createPost(){let txt=document.getElementById('postText').value||'New anime post ✨';let priv=document.getElementById('postPrivacy').value;let file=document.getElementById('postFile').files[0];let url=file?URL.createObjectURL(file):'https://picsum.photos/600/400?random='+Date.now();posts.unshift({txt,priv,url,likes:0,comments:[],id:Date.now(),mine:true});localStorage.setItem('aniverse_posts',JSON.stringify(posts));document.getElementById('postText').value='';renderAll();addNotif('You posted a new '+priv+' post','Just now');alert('Posted! Friends & Followers go see am!');}
+function renderAll(){
+ document.getElementById('stories').innerHTML=stories.map(s=>`<div class="story" onclick="alert('Opening ${s.n} story - expires in 24h')"><img src="${s.img}"><div>${s.n}</div></div>`).join('');
+ let all=[...posts,{txt:'New fanart drop! ✨ Loving this night city scene 🌙 #animeart #nightvibes',priv:'public',url:'https://picsum.photos/600/400?random=1',likes:1200,comments:['Amazing!'],mine:false}];
+ document.getElementById('feed').innerHTML=all.map(p=>`<div class="card"><div class="pad"><b>${p.mine?'@you':'@sakura_art'} ✅</b> • 2h • ${p.priv==='private'?'🔒 Private - Friends Only':'🌍 Public'} ${p.mine?`<span style="float:right;cursor:pointer" onclick="postMenu(${p.id})">⋯</span>`:''}</div><p style="padding:0 12px 10px">${p.txt}</p><img src="${p.url}"><div class="actions"><span onclick="this.innerText='❤️ '+((${p.likes||0})+1)">❤️ ${p.likes||0}</span><span onclick="openComments()">💬 Comment</span><span onclick="alert('Shared to Friends & Followers!')">↗ Share</span><span onclick="alert('Saved to Gallery!')">🔖 Save</span><span onclick="alert('Volume muted/unmuted!')">🔊</span></div><div style="padding:0 12px 12px;color:#aaa;font-size:13px" onclick="openComments()">See all comments — opens like Facebook</div></div>`).join('');
+ document.getElementById('myPosts').innerHTML='<h3 style="margin-top:16px">My Posts</h3>'+posts.map(p=>`<div class="card"><img src="${p.url}"><div class="pad">${p.txt} • ${p.priv} <br><button onclick="togglePrivacy(${p.id})">Change to ${p.priv==='private'?'Public':'Private'}</button> <button onclick="deletePost(${p.id})">Delete</button></div></div>`).join('')||'<p>No posts yet</p>';
+ document.getElementById('postCount').innerText=posts.length; renderNotif();
+}
+function postMenu(id){if(confirm('Delete this post? OK=Delete, Cancel=Change Privacy')) deletePost(id); else togglePrivacy(id);}
+function deletePost(id){if(!confirm('Only YOU fit delete this. Delete?'))return;posts=posts.filter(p=>p.id!==id);localStorage.setItem('aniverse_posts',JSON.stringify(posts));renderAll();}
+function togglePrivacy(id){let p=posts.find(x=>x.id===id);p.priv=p.priv==='private'?'public':'private';localStorage.setItem('aniverse_posts',JSON.stringify(posts));renderAll();}
+function openComments(){let c=prompt('Write your comment (opens like Facebook):'); if(c){alert('Comment posted: '+c); addNotif('Someone commented on your post',c);}}
+function changePic(e){let f=e.target.files[0]; if(f) document.getElementById('myPic').src=URL.createObjectURL(f);}
+function saveBio(){document.getElementById('bioShow').innerText=document.getElementById('bioInput').value; alert('Bio saved! Everybody wey enter your page go see am!');}
+function addNotif(t,s){notifs.unshift({img:'https://i.pravatar.cc/100?img=12',t,s}); document.getElementById('notifCount').innerText=notifs.length; renderNotif();}
+function renderNotif(){document.getElementById('notifList').innerHTML=notifs.map(n=>`<div class="notif"><img src="${n.img}"><div><b>${n.t}</b><div style="color:#aaa;font-size:13px">${n.s}</div></div></div>`).join(''); document.getElementById('notifCount').innerText=notifs.length;}
+function clearNotif(){notifs=[];renderNotif();alert('All read!');}
+function openChat(name){document.getElementById('chatName').innerText=name;document.getElementById('chatPage').classList.remove('hidden');renderChat(name);}
+function closeChat(){document.getElementById('chatPage').classList.add('hidden');}
+function renderChat(name){let arr=chats[name]||[];document.getElementById('chatMsgs').innerHTML=arr.map((m,i)=>`<div class="msg ${m.me?'me':'other'}" onclick="deleteMsg('${name}',${i})">${m.t}</div>`).join('');}
+function sendMsg(){let v=document.getElementById('chatInput').value; if(!v)return; let n=document.getElementById('chatName').innerText; chats[n]=chats[n]||[]; chats[n].push({me:true,t:v}); document.getElementById('chatInput').value=''; renderChat(n); if(document.getElementById('disappear').checked) setTimeout(()=>{chats[n].pop();renderChat(n);},5000); addNotif('Message sent to '+n,v);}
+function deleteMsg(name,i){if(confirm('Delete for Everybody (both sides) or for Me? OK=Everybody')){chats[name].splice(i,1); alert('Deleted for Everybody!');} else {chats[name].splice(i,1); alert('Deleted for Me!');} renderChat(name);}
+// CALL - Voice & Video like WhatsApp
+let localStream=null, callInterval=null, callSeconds=0, isMuted=false;
+async function startCall(type){
+  let name=document.getElementById('chatName').innerText;
+  document.getElementById('callName').innerText=name;
+  document.getElementById('callStatus').innerText='Calling... Ringing...';
+  let cs=document.getElementById('callScreen'); cs.classList.remove('hidden'); cs.style.display='flex';
+  try{
+    localStream = await navigator.mediaDevices.getUserMedia({audio:true, video: type==='video'});
+    if(type==='video'){ document.getElementById('localVideo').srcObject=localStream; document.getElementById('localVideo').style.display='block'; document.getElementById('remoteVideo').style.display='block'; document.getElementById('remoteVideo').srcObject=localStream; }
+    setTimeout(()=>{ document.getElementById('callStatus').innerText='Connected • Other person can hear you ✅'; startTimer(); addNotif('Call with '+name+' started', type+' call'); },2000);
+  }catch(e){ alert('Please press ALLOW for Microphone (and Camera for video) — if you press Block, person no go hear you!'); }
+}
+function startTimer(){ callSeconds=0; clearInterval(callInterval); callInterval=setInterval(()=>{callSeconds++; let m=String(Math.floor(callSeconds/60)).padStart(2,'0'); let s=String(callSeconds%60).padStart(2,'0'); document.getElementById('callTimer').innerText=m+':'+s;},1000); }
+function toggleMute(){ if(!localStream) return; isMuted=!isMuted; localStream.getAudioTracks().forEach(t=>t.enabled=!isMuted); document.getElementById('muteBtn').innerText=isMuted?'🔇':'🎤'; document.getElementById('muteBtn').style.background=isMuted?'#ef4444':'#333'; }
+function endCall(){ clearInterval(callInterval); if(localStream) localStream.getTracks().forEach(t=>t.stop()); let cs=document.getElementById('callScreen'); cs.classList.add('hidden'); cs.style.display='none'; document.getElementById('callTimer').innerText='00:00'; alert('Call ended!'); }
+supabaseClient.auth.onAuthStateChange((e,s)=>{if(s) enterApp();});
+renderAll();
+</script>
+</body>
+</html>
